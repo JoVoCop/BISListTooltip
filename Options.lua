@@ -136,7 +136,7 @@ local function buildActiveListControl()
     local cycler = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
     cycler:SetSize(320, 24)
     cycler:SetScript("OnClick", function()
-      -- Cycles Off, then each list in turn, then back to Off.
+      -- Cycles through each list in turn, then Off, then back to the first list.
       local records = ns.Lists.All()
       if #records == 0 then return end
       local active = ns.Lists.GetActive()
@@ -168,7 +168,6 @@ local function refreshActiveListControl(records)
     widgets.dropdown:SetShown(not empty)
     if widgets.dropdown.SetupMenu then
       widgets.dropdown:SetupMenu(function(_, root)
-        root:CreateRadio(OFF_LABEL, function() return ns.Lists.IsOff() end, function() ns.Lists.SetOff() end)
         for _, record in ipairs(ns.Lists.All()) do
           local listId = record.listId
           root:CreateRadio(listLabel(record), function()
@@ -176,6 +175,7 @@ local function refreshActiveListControl(records)
             return current ~= nil and current.listId == listId
           end, function() ns.Lists.SetActive(listId) end)
         end
+        root:CreateRadio(OFF_LABEL, function() return ns.Lists.IsOff() end, function() ns.Lists.SetOff() end)
       end)
     end
   elseif widgets.cycler then
