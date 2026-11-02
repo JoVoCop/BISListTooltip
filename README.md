@@ -38,6 +38,12 @@ Only the Python 3 standard library is used by the tools.
 3. Add `changelogs/vX.Y.Z.md`.
 4. Tag `vX.Y.Z` and push the tag. The release workflow builds the zip, creates the GitHub release and uploads the zip to CurseForge with the changelog; a missing changelog fails it. A tag with `-beta` or `-alpha` in it is published to CurseForge as a beta or alpha.
 
+### Daily built-in list sync
+
+The "Sync built-in lists" workflow runs every day and can be started from the Actions tab. It runs `tools/sync-builtin.py` against bislist.io, tests the result, and opens (or updates) an "Update built-in lists" pull request listing what changed; if the lists match main again, it closes that pull request.
+
+Merging that pull request starts "Release synced lists". With the repository variable `AUTO_RELEASE` set to `true`, it writes the changelog, tags the next patch version and runs the release (GitHub and CurseForge). Otherwise, and always before the first tagged release, it only reports in the run summary what it would release.
+
 ### CurseForge publishing
 
 The release workflow uploads with `tools/publish-curseforge.py`, which needs:

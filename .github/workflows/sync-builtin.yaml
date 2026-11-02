@@ -1,0 +1,70 @@
+name: Sync built-in lists
+
+on:
+  schedule:
+    # Daily, shortly after bislist.io's own list imports at 14:00 UTC.
+    - cron: "37 14 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-builtin
+  cancel-in-progress: false
+
+env:
+  BRANCH: sync-builtin-lists
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install Lua 5.1
+        run: sudo apt-get install -y lua5.1
+
+      - name: Sync from bislist.io
+        run: python3 tools/sync-builtin.py | tee summary.txt
+
+      # Pull requests opened by a workflow don't start CI, so the synced data is tested here.
+      - name: Test the synced data
+        run: |
+          lua5.1 tests/run.lua
+          python3 -m unittest discover -s tools -p 'test_*.py'
+
+      - name: Open, update or close the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          existing=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
+          if git diff --quiet -- Data; then
+            echo "Built-in lists match bislist.io." >> "$GITHUB_STEP_SUMMARY"
+            if [ -n "$existing" ]; then
+              gh pr close "$existing" --delete-branch --comment "The built-in lists on bislist.io match main again."
+            fi
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git add Data
+          git commit -q -m "Update built-in lists from bislist.io" -m "$(cat summary.txt)"
+          git push -q --force origin "$BRANCH"
+          {
+            echo "The built-in lists changed on bislist.io:"
+            echo
+            sed 's/^/* /' summary.txt
+            echo
+            echo "Merging releases the next patch version when automatic releases are on (repository variable \`AUTO_RELEASE\` set to \`true\`). Until then, merging only updates main."
+          } > body.md
+          if [ -n "$existing" ]; then
+            gh pr edit "$existing" --body-file body.md
+          else
+            gh pr create --head "$BRANCH" --title "Update built-in lists" --body-file body.md
+          fi
+          cat body.md >> "$GITHUB_STEP_SUMMARY"
