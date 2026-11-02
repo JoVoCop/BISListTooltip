@@ -31,6 +31,8 @@ jobs:
       # bash with pipefail, so a failed sync stops the run instead of hiding behind tee.
       - name: Sync from bislist.io
         shell: bash
+        env:
+          BISLIST_SYNC_KEY: ${{ secrets.BISLIST_SYNC_KEY }}
         run: python3 tools/sync-builtin.py | tee summary.txt
 
       # Pull requests opened by a workflow don't start CI, so the synced data is tested here.
