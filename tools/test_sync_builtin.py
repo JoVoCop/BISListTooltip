@@ -85,12 +85,12 @@ class RenderTest(unittest.TestCase):
     def test_committed_data_files_are_what_the_renderer_produces(self) -> None:
         lists_lua = (REPO_DIR / "Data" / "BuiltinLists.lua").read_text(encoding="utf-8")
         item_pattern = re.compile(r"^  \{\n(.*?)^  \},$", re.MULTILINE | re.DOTALL)
-        field_pattern = re.compile(r'^    (\w+) = (?:"((?:[^"\\]|\\.)*)"|(\d+)),$', re.MULTILINE)
+        field_pattern = re.compile(r'^    (\w+) = (?:"((?:[^"\\]|\\.)*)"|(\d+)|(true)),$', re.MULTILINE)
         parsed_lists: list[dict[str, Any]] = []
         for body in item_pattern.findall(lists_lua):
             parsed_lists.append({
-                key: int(number) if number else sync_builtin.unescape_lua_string(text)
-                for key, text, number in field_pattern.findall(body)
+                key: True if flag else int(number) if number else sync_builtin.unescape_lua_string(text)
+                for key, text, number, flag in field_pattern.findall(body)
             })
         self.assertEqual(lists_lua, sync_builtin.render_builtin_lists(parsed_lists))
 
@@ -272,6 +272,52 @@ class DuplicateTest(unittest.TestCase):
                    "lists": [make_list("abc"), make_list("abc", 20261104002)]}
         with self.assertRaisesRegex(sync_builtin.SyncError, "duplicate"):
             sync_builtin.build_outputs(payload, CatalogTest.CATALOG_PATH)
+
+
+class DefaultListTest(unittest.TestCase):
+    def payload(self, *lists: dict[str, Any]) -> dict[str, Any]:
+        return {"catalog": CatalogTest().current(), "tokens": [], "lists": list(lists)}
+
+    def test_the_default_is_carried_and_a_missing_flag_means_not_default(self) -> None:
+        payload = self.payload(make_list("a"), {**make_list("b"), "isDefault": True}, {**make_list("c"), "isDefault": False})
+        lists, _ = sync_builtin.build_outputs(payload, CatalogTest.CATALOG_PATH)
+        self.assertEqual([item["isDefault"] for item in lists], [False, True, False])
+
+    def test_two_defaults_or_a_non_boolean_flag_fail(self) -> None:
+        two = self.payload({**make_list("a"), "isDefault": True}, {**make_list("b"), "isDefault": True})
+        with self.assertRaisesRegex(sync_builtin.SyncError, "more than one default"):
+            sync_builtin.build_outputs(two, CatalogTest.CATALOG_PATH)
+        with self.assertRaisesRegex(sync_builtin.SyncError, "isDefault"):
+            sync_builtin.build_outputs(self.payload({**make_list("a"), "isDefault": "yes"}), CatalogTest.CATALOG_PATH)
+
+    def test_only_the_default_is_marked_and_the_addon_reads_it(self) -> None:
+        lists = [{**make_list("a"), "isDefault": False}, {**make_list("b"), "isDefault": True}]
+        rendered = sync_builtin.render_builtin_lists(lists)
+        self.assertEqual(rendered.count("isDefault"), 1)
+        if shutil.which("lua5.1") is None:
+            self.skipTest("lua5.1 not installed")
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "lists.lua"
+            path.write_bytes(rendered.encode("utf-8"))
+            script = (
+                "local ns = {}\n"
+                f"assert(loadfile('{path}'))('addon', ns)\n"
+                "print(tostring(ns.BuiltinLists[1].isDefault), tostring(ns.BuiltinLists[2].isDefault))"
+            )
+            result = subprocess.run(["lua5.1", "-e", script], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip().split("\t"), ["nil", "true"])
+
+    def test_summary_names_a_new_default(self) -> None:
+        old = sync_builtin.render_builtin_lists([{**make_list("a", title="Alpha"), "isDefault": True},
+                                                 make_list("b", title="Beta")])
+        moved = [make_list("a", title="Alpha"), {**make_list("b", title="Beta"), "isDefault": True}]
+        self.assertEqual(sync_builtin.summarize(old, moved, "", []), ['Default list: "Beta" (b)'])
+        cleared = [make_list("a", title="Alpha"), make_list("b", title="Beta")]
+        self.assertEqual(sync_builtin.summarize(old, cleared, "", []),
+                         ["Default list: none, characters start on the first built-in list"])
+        kept = [{**make_list("a", title="Alpha"), "isDefault": True}, make_list("b", title="Beta")]
+        self.assertEqual(sync_builtin.summarize(old, kept, "", []), ["No changes."])
 
 
 class MainTest(unittest.TestCase):
