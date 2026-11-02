@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "v*"
+  # A tag pushed by a workflow doesn't start other workflows, so the automatic patch release calls this directly.
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -11,13 +17,17 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
 
       - name: Require a changelog for the tag
         run: |
-          if [ ! -f "changelogs/${GITHUB_REF_NAME}.md" ]; then
-            echo "::error::changelogs/${GITHUB_REF_NAME}.md is missing; add it and re-tag."
+          if [ ! -f "changelogs/${TAG}.md" ]; then
+            echo "::error::changelogs/${TAG}.md is missing; add it and re-tag."
             exit 1
           fi
 
@@ -27,12 +37,12 @@ jobs:
           cp BISListTooltip.toc *.lua output/BISListTooltip/
           cp -r Data Libs output/BISListTooltip/
           # Lets the in-game version show the release instead of "dev".
-          sed -i "s/^## Version: dev$/## Version: ${GITHUB_REF_NAME#v}/" output/BISListTooltip/BISListTooltip.toc
-          grep -q "^## Version: ${GITHUB_REF_NAME#v}$" output/BISListTooltip/BISListTooltip.toc
+          sed -i "s/^## Version: dev$/## Version: ${TAG#v}/" output/BISListTooltip/BISListTooltip.toc
+          grep -q "^## Version: ${TAG#v}$" output/BISListTooltip/BISListTooltip.toc
 
       - name: Zip the addon
         working-directory: output
-        run: zip -r "BISListTooltip-${GITHUB_REF_NAME}.zip" BISListTooltip
+        run: zip -r "BISListTooltip-${TAG}.zip" BISListTooltip
 
       - name: Build the CurseForge changelog
         run: python3 tools/generate-curseforge-changelog.py
@@ -41,11 +51,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            "output/BISListTooltip-${GITHUB_REF_NAME}.zip" \
+          gh release create "$TAG" \
+            "output/BISListTooltip-${TAG}.zip" \
             output/curseforge-changelog.md \
-            -F "changelogs/${GITHUB_REF_NAME}.md" \
-            --title "$GITHUB_REF_NAME"
+            -F "changelogs/${TAG}.md" \
+            --title "$TAG"
 
       # Skipped with a notice until the CURSEFORGE_API_TOKEN secret exists.
       - name: Publish to CurseForge
@@ -55,6 +65,6 @@ jobs:
           CURSEFORGE_GAME_VERSIONS: ${{ vars.CURSEFORGE_GAME_VERSIONS }}
         run: |
           python3 tools/publish-curseforge.py \
-            --tag "$GITHUB_REF_NAME" \
-            --zip "output/BISListTooltip-${GITHUB_REF_NAME}.zip" \
+            --tag "$TAG" \
+            --zip "output/BISListTooltip-${TAG}.zip" \
             --changelog output/curseforge-changelog.md
