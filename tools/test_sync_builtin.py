@@ -354,5 +354,17 @@ class DefaultSiteTest(unittest.TestCase):
         self.assertEqual(sync_builtin.DEFAULT_SITE, "https://bislist.io")
 
 
+
+class FetchTest(unittest.TestCase):
+    def test_names_itself_because_the_site_refuses_generic_python_clients(self):
+        response = mock.MagicMock()
+        response.__enter__.return_value = io.BytesIO(b'{"lists": []}')
+        with mock.patch.object(sync_builtin.urllib.request, "urlopen", return_value=response) as urlopen:
+            self.assertEqual(sync_builtin.fetch_builtin("https://bislist.test/"), {"lists": []})
+        request = urlopen.call_args.args[0]
+        self.assertEqual(request.full_url, "https://bislist.test/api/addon/builtin")
+        self.assertEqual(request.get_header("User-agent"), sync_builtin.USER_AGENT)
+        self.assertTrue(sync_builtin.USER_AGENT.startswith("BISListTooltip-sync/"))
+
 if __name__ == "__main__":
     unittest.main()
