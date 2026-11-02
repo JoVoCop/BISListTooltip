@@ -248,6 +248,42 @@ return {
     t.ok(reported[1]:find("boom", 1, true))
   end,
 
+  ["Off hides BIS lines on this character and remembers the list for turning them back on"] = function(t)
+    local ns, _, charDB = setup()
+    ns.Lists.Import(listString("a", 1, "Alpha", { "E\tMAGE\tFire\t11\thead\t1\tA" }))
+    local changes = {}
+    ns.Lists.OnChange(function(kind) changes[#changes + 1] = kind end)
+    ns.Lists.SetOff()
+    t.ok(ns.Lists.IsOff())
+    t.eq(ns.Lists.GetActive(), nil)
+    t.eq(ns.Lists.GetActiveIndex(), nil)
+    t.eq(charDB.activeListId, "a")
+    t.eq(ns.Lists.EnsureActive(), nil)
+    t.ok(ns.Lists.IsOff())
+    t.eq(changes, { "active" })
+    ns.Lists.SetActive("a")
+    t.eq(ns.Lists.IsOff(), false)
+    t.ok(ns.Lists.GetActiveIndex()[11])
+  end,
+
+  ["importing a new list turns BIS lines back on with that list"] = function(t)
+    local ns = setup()
+    ns.Lists.Import(listString("a", 1, "Alpha"))
+    ns.Lists.SetOff()
+    ns.Lists.Import(listString("b", 1, "Beta"))
+    t.eq(ns.Lists.IsOff(), false)
+    t.eq(ns.Lists.GetActive().listId, "b")
+  end,
+
+  ["Off is per character"] = function(t)
+    local ns = setup({ builtin("a", 1, "Alpha") })
+    ns.Lists.SetOff()
+    local other = setup({ builtin("a", 1, "Alpha") })
+    t.eq(other.Lists.IsOff(), false)
+    other.Lists.EnsureActive()
+    t.eq(other.Lists.GetActive().listId, "a")
+  end,
+
   ["SetActive switching lists changes what GetActiveIndex returns"] = function(t)
     local ns = setup()
     ns.Lists.Import(listString("a", 1, "Alpha", { "E\tMAGE\tFire\t11\thead\t1\tA" }))

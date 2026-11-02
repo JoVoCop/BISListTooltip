@@ -87,9 +87,11 @@ function Lists.OnChange(listener)
   listeners[#listeners + 1] = listener
 end
 
+-- Choosing a list, by hand or by importing a new one, also turns BIS lines back on.
 local function setActiveQuietly(record)
   charDB.activeListId = record.listId
   charDB.activeListTitle = record.title
+  charDB.off = nil
 end
 
 function Lists.SetActive(listId)
@@ -99,7 +101,18 @@ function Lists.SetActive(listId)
   notify("active", listId)
 end
 
+-- Hides BIS lines on this character; the chosen list is kept so picking it again is one click.
+function Lists.SetOff()
+  charDB.off = true
+  notify("active", nil)
+end
+
+function Lists.IsOff()
+  return charDB.off == true
+end
+
 function Lists.GetActive()
+  if charDB.off then return nil end
   return Lists.Get(charDB.activeListId)
 end
 
@@ -165,6 +178,7 @@ function Lists.Remove(listId)
 end
 
 function Lists.EnsureActive()
+  if charDB.off then return nil end
   local activeId = charDB.activeListId
   if activeId and Lists.Get(activeId) then return nil end
   if not activeId then
