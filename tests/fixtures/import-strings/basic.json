@@ -1,0 +1,42 @@
+{
+  "listId": "fixtureBasic0001",
+  "version": 20251030001,
+  "publishedAt": 1761782400,
+  "game": "forever",
+  "title": "Basic Fixture",
+  "author": "Fixture Author",
+  "entries": [
+    {
+      "classToken": "MAGE",
+      "build": "Fire",
+      "itemId": 19019,
+      "slotGroup": "head",
+      "rank": 1,
+      "label": "Best"
+    },
+    {
+      "classToken": "MAGE",
+      "build": "Fire",
+      "itemId": 19020,
+      "slotGroup": "head",
+      "rank": 2,
+      "label": "Pre-BIS"
+    },
+    {
+      "classToken": "MAGE",
+      "build": "Fire",
+      "itemId": 19021,
+      "slotGroup": "neck",
+      "rank": 1,
+      "label": "Best"
+    },
+    {
+      "classToken": "ROGUE",
+      "build": "Rogue",
+      "itemId": 19022,
+      "slotGroup": "weapon",
+      "rank": 1,
+      "label": "Melee Best"
+    }
+  ]
+}

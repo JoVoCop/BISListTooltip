@@ -1,0 +1,26 @@
+{
+  "listId": "fixtureUnknown01",
+  "version": 20251030002,
+  "publishedAt": 1761782400,
+  "game": "forever",
+  "title": "Unknown Class Fixture",
+  "author": "Fixture Author",
+  "entries": [
+    {
+      "classToken": "MAGE",
+      "build": "Fire",
+      "itemId": 19019,
+      "slotGroup": "head",
+      "rank": 1,
+      "label": "Best"
+    },
+    {
+      "classToken": "ROGUE",
+      "build": "Rogue",
+      "itemId": 19022,
+      "slotGroup": "weapon",
+      "rank": 1,
+      "label": "Melee Best"
+    }
+  ]
+}

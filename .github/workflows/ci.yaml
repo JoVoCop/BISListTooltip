@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install Lua 5.1
+        run: sudo apt-get install -y lua5.1
+      - name: Lua tests
+        run: lua5.1 tests/run.lua
+      - name: Python tests
+        run: python3 -m unittest discover -s tools -p 'test_*.py' -v

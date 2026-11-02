@@ -1,0 +1,9 @@
+# Release builds
+output/
+*.zip
+
+# Python
+__pycache__/
+
+# Lua
+luac.out

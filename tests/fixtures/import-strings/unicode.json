@@ -1,0 +1,34 @@
+{
+  "listId": "fixtureUnicode001",
+  "version": 20251030003,
+  "publishedAt": 1761782400,
+  "game": "forever",
+  "title": "Ñoëlle's Guild – Raid ★",
+  "author": "Zoë",
+  "entries": [
+    {
+      "classToken": "PRIEST",
+      "build": "Ombre ★",
+      "itemId": 30001,
+      "slotGroup": "chest",
+      "rank": 1,
+      "label": "Größte"
+    },
+    {
+      "classToken": "PRIEST",
+      "build": "Ombre ★",
+      "itemId": 30002,
+      "slotGroup": "chest",
+      "rank": 2,
+      "label": "Mejor ñandú"
+    },
+    {
+      "classToken": "WARLOCK",
+      "build": "Destruction",
+      "itemId": 30003,
+      "slotGroup": "finger",
+      "rank": 1,
+      "label": "最佳"
+    }
+  ]
+}
