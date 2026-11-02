@@ -7,3 +7,6 @@ __pycache__/
 
 # Lua
 luac.out
+
+# Remembered AddOns folder for tools/install-addon.ps1
+.addons-path

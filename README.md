@@ -28,6 +28,7 @@ If a guildmate also runs the addon and holds a newer version of a list you have,
 * Lua tests (needs `lua5.1`): `lua5.1 tests/run.lua`
 * Python tests: `python3 -m unittest discover -s tools -p 'test_*.py' -v`
 * Copy the addon into your game: `tools/install-addon.sh "<path to Interface/AddOns>"`
+* On Windows: `powershell -ExecutionPolicy Bypass -File tools\install-addon.ps1 "<path to Interface\AddOns>"`. The folder is remembered, so later runs need no argument; then `/reload` in game.
 
 Only the Python 3 standard library is used by the tools.
 
