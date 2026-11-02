@@ -366,5 +366,20 @@ class FetchTest(unittest.TestCase):
         self.assertEqual(request.get_header("User-agent"), sync_builtin.USER_AGENT)
         self.assertTrue(sync_builtin.USER_AGENT.startswith("BISListTooltip-sync/"))
 
+    def test_sends_the_sync_key_from_the_environment_when_set(self):
+        response = mock.MagicMock()
+        response.__enter__.return_value = io.BytesIO(b'{"lists": []}')
+        with mock.patch.dict(os.environ, {"BISLIST_SYNC_KEY": "k3y"}), \
+                mock.patch.object(sync_builtin.urllib.request, "urlopen", return_value=response) as urlopen:
+            sync_builtin.fetch_builtin("https://bislist.test")
+        self.assertEqual(urlopen.call_args.args[0].get_header("X-addon-sync-key"), "k3y")
+
+    def test_names_the_missing_key_when_the_site_refuses(self):
+        error = sync_builtin.urllib.error.HTTPError("https://bislist.test/api/addon/builtin", 401, "Unauthorized", {}, None)
+        with mock.patch.dict(os.environ, {}, clear=True), \
+                mock.patch.object(sync_builtin.urllib.request, "urlopen", side_effect=error):
+            with self.assertRaisesRegex(sync_builtin.SyncError, "BISLIST_SYNC_KEY"):
+                sync_builtin.fetch_builtin("https://bislist.test")
+
 if __name__ == "__main__":
     unittest.main()

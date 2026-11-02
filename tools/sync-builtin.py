@@ -31,9 +31,18 @@ class SyncError(Exception):
 
 def fetch_builtin(site: str) -> dict[str, Any]:
     url = site.rstrip("/") + "/api/addon/builtin"
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=30) as response:
-        data = json.load(response)
+    headers = {"User-Agent": USER_AGENT}
+    # The endpoint only answers the sync, which proves itself with the key the site holds as ADDON_SYNC_KEY.
+    key = os.environ.get("BISLIST_SYNC_KEY", "")
+    if key:
+        headers["X-Addon-Sync-Key"] = key
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=30) as response:
+            data = json.load(response)
+    except urllib.error.HTTPError as error:
+        if error.code == 401:
+            raise SyncError(f"{url} refused the request; set BISLIST_SYNC_KEY to the site's sync key") from error
+        raise
     if not isinstance(data, dict):
         raise SyncError(f"{url} did not return a JSON object")
     return data
