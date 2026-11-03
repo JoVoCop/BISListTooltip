@@ -37,7 +37,7 @@ Only the Python 3 standard library is used by the tools.
 1. `BISLIST_SYNC_KEY=... python3 tools/sync-builtin.py` (optionally `--site URL`). The key must match the site's `ADDON_SYNC_KEY`; the daily workflow reads it from the `BISLIST_SYNC_KEY` repository secret. It rewrites `Data/BuiltinLists.lua` and `Data/Tokens.lua` and prints what was added, removed or updated.
 2. Review the diff and run the tests.
 3. Add `changelogs/vX.Y.Z.md`.
-4. Tag `vX.Y.Z` and push the tag. The release workflow builds the zip, creates the GitHub release and uploads the zip to CurseForge with the changelog; a missing changelog fails it. A tag with `-beta` or `-alpha` in it is published to CurseForge as a beta or alpha.
+4. Tag `vX.Y.Z` and push the tag. The release workflow builds the zip, creates the GitHub release and uploads the zip to CurseForge with the changelog; a missing changelog fails it. A tag with `-beta` or `-alpha` in it, such as `v2.0.0-alpha.1`, uses the changelog of the version it leads up to (`changelogs/v2.0.0.md`) and is published as a GitHub pre-release and a CurseForge beta or alpha.
 
 ### Daily built-in list sync
 
