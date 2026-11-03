@@ -24,12 +24,22 @@ jobs:
         with:
           ref: ${{ inputs.tag || github.ref_name }}
 
+      # Alpha and beta tags (v2.0.0-alpha.1) are test builds of the version they lead up to, so they share its changelog.
       - name: Require a changelog for the tag
+        shell: bash
         run: |
-          if [ ! -f "changelogs/${TAG}.md" ]; then
-            echo "::error::changelogs/${TAG}.md is missing; add it and re-tag."
+          changelog="changelogs/${TAG}.md"
+          prerelease=false
+          if [[ "${TAG,,}" == *alpha* || "${TAG,,}" == *beta* ]]; then
+            changelog="changelogs/${TAG%%-*}.md"
+            prerelease=true
+          fi
+          if [ ! -f "$changelog" ]; then
+            echo "::error::$changelog is missing; add it and re-tag."
             exit 1
           fi
+          echo "CHANGELOG=$changelog" >> "$GITHUB_ENV"
+          echo "PRERELEASE=$prerelease" >> "$GITHUB_ENV"
 
       - name: Build the addon folder
         run: |
@@ -54,8 +64,9 @@ jobs:
           gh release create "$TAG" \
             "output/BISListTooltip-${TAG}.zip" \
             output/curseforge-changelog.md \
-            -F "changelogs/${TAG}.md" \
-            --title "$TAG"
+            -F "$CHANGELOG" \
+            --title "$TAG" \
+            --prerelease="$PRERELEASE"
 
       # Skipped with a notice until the CURSEFORGE_API_TOKEN secret exists.
       - name: Publish to CurseForge
