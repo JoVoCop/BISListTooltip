@@ -9,6 +9,7 @@ local REMOVE_PROMPT = 'Remove "%s"?\n\nThis removes it for all characters on thi
 local NOTICES_LABEL = "Tell me when a guildmate has a newer version of one of my lists"
 local IMPORT_HINT = "Copy an import string from bislist.io and paste it here."
 local NO_LISTS_TEXT = "No lists yet. Import one below."
+local OFF_LABEL = "Off (no BIS lines in tooltips)"
 
 local MARGIN = 16
 local ROW_HEIGHT = 36
@@ -135,14 +136,21 @@ local function buildActiveListControl()
     local cycler = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
     cycler:SetSize(320, 24)
     cycler:SetScript("OnClick", function()
+      -- Cycles through each list in turn, then Off, then back to the first list.
       local records = ns.Lists.All()
       if #records == 0 then return end
       local active = ns.Lists.GetActive()
-      local nextIndex = 1
-      for index, record in ipairs(records) do
-        if active and record.listId == active.listId then nextIndex = index % #records + 1 end
+      if ns.Lists.IsOff() then
+        ns.Lists.SetActive(records[1].listId)
+        return
       end
-      ns.Lists.SetActive(records[nextIndex].listId)
+      for index, record in ipairs(records) do
+        if active and record.listId == active.listId then
+          if records[index + 1] then ns.Lists.SetActive(records[index + 1].listId) else ns.Lists.SetOff() end
+          return
+        end
+      end
+      ns.Lists.SetActive(records[1].listId)
     end)
     widgets.cycler = cycler
     addBlock(cycler, 28)
@@ -167,11 +175,12 @@ local function refreshActiveListControl(records)
             return current ~= nil and current.listId == listId
           end, function() ns.Lists.SetActive(listId) end)
         end
+        root:CreateRadio(OFF_LABEL, function() return ns.Lists.IsOff() end, function() ns.Lists.SetOff() end)
       end)
     end
   elseif widgets.cycler then
     widgets.cycler:SetShown(not empty)
-    widgets.cycler:SetText(active and listLabel(active) or "")
+    widgets.cycler:SetText(ns.Lists.IsOff() and OFF_LABEL or (active and listLabel(active) or ""))
   end
 end
 
