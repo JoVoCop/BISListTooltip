@@ -32,9 +32,9 @@ class GameVersionsTest(unittest.TestCase):
 class MetadataTest(unittest.TestCase):
     def test_sends_the_markdown_changelog_and_game_versions(self):
         self.assertEqual(
-            publish.metadata("v2.0.0", "## v2.0.0\n* New", [12345]),
+            publish.metadata("v2.0.0", "BISListTooltip-v2.0.0.zip", "## v2.0.0\n* New", [12345]),
             {
-                "displayName": "v2.0.0",
+                "displayName": "BISListTooltip-v2.0.0.zip",
                 "changelog": "## v2.0.0\n* New",
                 "changelogType": "markdown",
                 "gameVersions": [12345],

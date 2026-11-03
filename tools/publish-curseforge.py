@@ -42,9 +42,10 @@ def parse_game_versions(value: str) -> list[int]:
     return [int(part) for part in ids]
 
 
-def metadata(tag: str, changelog: str, game_versions: list[int]) -> dict:
+# Named after the zip, as the files uploaded before v2 were, so the Files tab reads the same.
+def metadata(tag: str, file_name: str, changelog: str, game_versions: list[int]) -> dict:
     return {
-        "displayName": tag,
+        "displayName": file_name,
         "changelog": changelog,
         "changelogType": "markdown",
         "gameVersions": game_versions,
@@ -110,7 +111,7 @@ def main() -> int:
         if not re.fullmatch(r"\d+", project):
             raise PublishError("CURSEFORGE_PROJECT_ID must be the project's numeric id.")
         game_versions = parse_game_versions(os.environ.get("CURSEFORGE_GAME_VERSIONS", ""))
-        meta = metadata(args.tag, args.changelog.read_text(encoding="utf-8"), game_versions)
+        meta = metadata(args.tag, args.zip.name, args.changelog.read_text(encoding="utf-8"), game_versions)
         body, content_type = multipart({"metadata": json.dumps(meta)}, "file", args.zip)
         result = request(f"{API}/projects/{project}/upload-file", token, body, content_type)
         print(f"Uploaded {args.zip.name} to CurseForge as a {meta['releaseType']}: file id {result.get('id') if isinstance(result, dict) else result}")
