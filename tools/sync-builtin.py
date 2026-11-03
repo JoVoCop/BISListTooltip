@@ -146,6 +146,9 @@ def render_builtin_lists(lists: list[dict[str, Any]]) -> str:
             value = item[key]
             rendered = str(int(value)) if key in ("version", "publishedAt") else lua_string(value)
             lines.append(f"    {key} = {rendered},")
+        # Written only on the default, so other lists' entries don't change when it moves.
+        if item.get("isDefault"):
+            lines.append("    isDefault = true,")
         lines.append("  },")
     lines.append("}")
     return "\n".join(lines) + "\n"
@@ -185,6 +188,14 @@ def read_generated_lists(lua: str) -> dict[str, tuple[str, int]]:
     }
 
 
+def read_generated_default(lua: str) -> str | None:
+    for record in lua.split("\n  {\n")[1:]:
+        match = re.match(r'    listId = "((?:[^"\\]|\\.)*)",', record)
+        if match and "\n    isDefault = true," in record:
+            return unescape_lua_string(match.group(1))
+    return None
+
+
 def read_generated_tokens(lua: str) -> dict[int, list[int]]:
     pattern = re.compile(r"^ns\.TokenRewards\[(\d+)\] = \{ (.*) \}$", re.MULTILINE)
     return {
@@ -207,6 +218,10 @@ def summarize(old_lua: str, new_lists: list[dict[str, Any]], old_tokens_lua: str
     for list_id, (title, version) in new.items():
         if list_id in old and old[list_id][1] != version:
             lines.append(f'Updated: "{title}" v{format_version(old[list_id][1])} -> v{format_version(version)}')
+    new_default = next((item for item in new_lists if item.get("isDefault")), None)
+    if read_generated_default(old_lua) != (new_default["listId"] if new_default else None):
+        lines.append(f'Default list: "{new_default["title"]}" ({new_default["listId"]})' if new_default
+                     else "Default list: none, characters start on the first built-in list")
     old_rewards = read_generated_tokens(old_tokens_lua)
     new_rewards = {int(token["tokenItemId"]): sorted(int(r) for r in token["rewardItemIds"]) for token in new_tokens}
     added = len(new_rewards.keys() - old_rewards.keys())
@@ -238,6 +253,10 @@ def build_outputs(data: dict[str, Any], catalog_path: str) -> tuple[list[dict[st
                                 f'version {header["version"]} vs {entry["version"]})')
             if header["game"] != "forever":
                 raise SyncError(f'"{entry["title"]}" has game "{header["game"]}", expected "forever"')
+            # A site from before the default existed sends no flag, which means no default.
+            is_default = entry.get("isDefault", False)
+            if not isinstance(is_default, bool):
+                raise SyncError(f'"{entry["title"]}" has a non-boolean isDefault')
             lists.append({
                 "listId": entry["listId"],
                 "version": entry["version"],
@@ -245,9 +264,13 @@ def build_outputs(data: dict[str, Any], catalog_path: str) -> tuple[list[dict[st
                 "title": entry["title"],
                 "author": header["author"],
                 "importString": entry["importString"],
+                "isDefault": is_default,
             })
     except (KeyError, TypeError) as error:
         raise SyncError(f"unexpected response shape: {error!r}") from error
+    defaults = [item["title"] for item in lists if item["isDefault"]]
+    if len(defaults) > 1:
+        raise SyncError(f"more than one default list in the response: {', '.join(defaults)}")
     return lists, tokens
 
 
