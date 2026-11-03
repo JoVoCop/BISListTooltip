@@ -149,6 +149,32 @@ return {
     t.eq(charDB.activeListTitle, "Alpha")
   end,
 
+  ["EnsureActive starts on the default built-in list when none was chosen"] = function(t)
+    local default = builtin("b", 1, "Beta")
+    default.isDefault = true
+    local ns, _, charDB = setup({ builtin("a", 1, "Alpha"), default })
+    t.eq(ns.Lists.EnsureActive(), nil)
+    t.eq(charDB.activeListId, "b")
+    t.eq(charDB.activeListTitle, "Beta")
+  end,
+
+  ["EnsureActive keeps a chosen list over the default"] = function(t)
+    local default = builtin("b", 1, "Beta")
+    default.isDefault = true
+    local ns, _, charDB = setup({ builtin("a", 1, "Alpha"), default }, { activeListId = "a", activeListTitle = "Alpha" })
+    t.eq(ns.Lists.EnsureActive(), nil)
+    t.eq(charDB.activeListId, "a")
+  end,
+
+  ["a removed active list falls back to the default built-in list"] = function(t)
+    local default = builtin("b", 1, "Beta")
+    default.isDefault = true
+    local ns, _, charDB = setup({ builtin("a", 1, "Alpha"), default },
+      { activeListId = "gone", activeListTitle = "Guild List" })
+    t.eq(ns.Lists.EnsureActive(), '"Guild List" was removed, so BIS List Tooltip is now using "Beta".')
+    t.eq(charDB.activeListId, "b")
+  end,
+
   ["EnsureActive with nothing held returns the no-list message and GetActiveIndex is nil"] = function(t)
     local ns = setup({}, { activeListId = "gone", activeListTitle = "Guild List" })
     t.eq(ns.Lists.EnsureActive(), '"Guild List" was removed, so no list is active.')

@@ -153,9 +153,17 @@ function Lists.Import(text)
   return true, message
 end
 
--- Falls back to the first list; returns the chat/status message naming what was lost and what is used now.
+-- The list bislist.io marks as the default, so a new character starts on the list we recommend rather than whichever sorts first.
+local function startingList()
+  for _, record in ipairs(ns.BuiltinLists or {}) do
+    if record.isDefault then return Lists.Get(record.listId) end
+  end
+  return Lists.All()[1]
+end
+
+-- Falls back to the starting list; returns the chat/status message naming what was lost and what is used now.
 local function fallBackFrom(removedTitle)
-  local first = Lists.All()[1]
+  local first = startingList()
   if first then
     setActiveQuietly(first)
     return ('"%s" was removed, so BIS List Tooltip is now using "%s".'):format(escapePipes(removedTitle), escapePipes(first.title))
@@ -182,7 +190,7 @@ function Lists.EnsureActive()
   local activeId = charDB.activeListId
   if activeId and Lists.Get(activeId) then return nil end
   if not activeId then
-    local first = Lists.All()[1]
+    local first = startingList()
     if first then setActiveQuietly(first) end
     return nil
   end
