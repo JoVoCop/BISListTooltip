@@ -10,7 +10,7 @@ Hover an item and, if it is on your active list, the tooltip shows which builds 
 2. In game, type `/blt` to open the options panel.
 3. Paste the string into the import box and press Import.
 
-Built-in lists ship with each release, once the owner has synced them with `tools/sync-builtin.py` before tagging. Imported lists are shared across your account; the active list is chosen per character, and a character starts on the built-in list bislist.io marks as the default until you choose another. Importing a list your account did not have makes it the active list on that character.
+Built-in lists ship with each release, once the owner has synced them with `tools/sync-builtin.py` before tagging. Imported lists are shared across your account; the active list is chosen per character. Importing a list your account did not have makes it the active list on that character.
 
 ## Options
 
