@@ -2,6 +2,7 @@
 ## Title: BIS List Tooltip
 ## Notes: Shows which builds want an item, from the BIS list you choose.
 ## Author: Jovo
+## IconTexture: Interface\AddOns\BISListTooltip\Media\Icon
 ## Version: dev
 ## SavedVariables: BISListTooltipDB
 ## SavedVariablesPerCharacter: BISListTooltipCharDB
