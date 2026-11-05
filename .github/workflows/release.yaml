@@ -45,7 +45,7 @@ jobs:
         run: |
           mkdir -p output/BISListTooltip
           cp BISListTooltip.toc *.lua output/BISListTooltip/
-          cp -r Data Libs output/BISListTooltip/
+          cp -r Data Libs Media output/BISListTooltip/
           # Lets the in-game version show the release instead of "dev".
           sed -i "s/^## Version: dev$/## Version: ${TAG#v}/" output/BISListTooltip/BISListTooltip.toc
           grep -q "^## Version: ${TAG#v}$" output/BISListTooltip/BISListTooltip.toc

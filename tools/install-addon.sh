@@ -20,5 +20,5 @@ destination="$addons_dir/BISListTooltip"
 rm -rf "$destination"
 mkdir -p "$destination"
 cp "$repo_dir"/BISListTooltip.toc "$repo_dir"/*.lua "$destination"/
-cp -r "$repo_dir"/Data "$repo_dir"/Libs "$destination"/
+cp -r "$repo_dir"/Data "$repo_dir"/Libs "$repo_dir"/Media "$destination"/
 echo "Installed to $destination"

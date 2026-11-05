@@ -28,4 +28,5 @@ Copy-Item (Join-Path $repo 'BISListTooltip.toc') $destination
 Copy-Item (Join-Path $repo '*.lua') $destination
 Copy-Item (Join-Path $repo 'Data') $destination -Recurse
 Copy-Item (Join-Path $repo 'Libs') $destination -Recurse
+Copy-Item (Join-Path $repo 'Media') $destination -Recurse
 Write-Host "Installed to $destination. Type /reload in game to load the changes."
