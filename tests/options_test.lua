@@ -104,6 +104,20 @@ return {
     t.eq(BISListTooltipDB.noticesEnabled, true)
   end,
 
+  ["blank line toggles write blankLineBefore and blankLineAfter"] = function(t)
+    local ns = loadAddon()
+    t.eq(BISListTooltipDB.blankLineBefore, true)
+    t.eq(BISListTooltipDB.blankLineAfter, true)
+    ns.Options.SetBlankLineBefore(false)
+    ns.Options.SetBlankLineAfter(false)
+    t.eq(BISListTooltipDB.blankLineBefore, false)
+    t.eq(BISListTooltipDB.blankLineAfter, false)
+    ns.Options.SetBlankLineBefore(true)
+    ns.Options.SetBlankLineAfter(true)
+    t.eq(BISListTooltipDB.blankLineBefore, true)
+    t.eq(BISListTooltipDB.blankLineAfter, true)
+  end,
+
   ["Refresh shows one row per list, Remove only on imported rows, and hides surplus rows"] = function(t)
     local ns, stubs = wow.load()
     ns.BuiltinLists = { { listId = "core", version = 2, publishedAt = 1761782400, title = "Core", author = "A", importString = listString("core", 2, "Core") } }

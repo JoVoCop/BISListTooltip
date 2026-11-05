@@ -12,7 +12,7 @@ return {
   ["first load shows every class"] = function(t)
     loadAddon({})
     for _, token in ipairs(ALL_TOKENS) do t.eq(BISListTooltipCharDB.displayClass[token], true) end
-    t.eq(BISListTooltipDB, { schema = 1, lists = {}, notified = {}, noticesEnabled = true })
+    t.eq(BISListTooltipDB, { schema = 1, lists = {}, notified = {}, noticesEnabled = true, blankLineBefore = true, blankLineAfter = true })
   end,
 
   ["existing settings survive a reload"] = function(t)
@@ -29,7 +29,7 @@ return {
 
   ["corrupt saved variables are replaced"] = function(t)
     loadAddon({ BISListTooltipDB = "x", BISListTooltipCharDB = 5 })
-    t.eq(BISListTooltipDB, { schema = 1, lists = {}, notified = {}, noticesEnabled = true })
+    t.eq(BISListTooltipDB, { schema = 1, lists = {}, notified = {}, noticesEnabled = true, blankLineBefore = true, blankLineAfter = true })
     t.eq(BISListTooltipCharDB.displayClass.MAGE, true)
     t.eq(BISListTooltipCharDB.displayClass.ROGUE, true)
   end,
@@ -39,7 +39,7 @@ return {
       BISListTooltipDB = { schema = 1, lists = "x", notified = 3, noticesEnabled = false },
       BISListTooltipCharDB = { displayClass = 5 },
     })
-    t.eq(BISListTooltipDB, { schema = 1, lists = {}, notified = {}, noticesEnabled = false })
+    t.eq(BISListTooltipDB, { schema = 1, lists = {}, notified = {}, noticesEnabled = false, blankLineBefore = true, blankLineAfter = true })
     t.eq(BISListTooltipCharDB.displayClass.MAGE, true)
     t.eq(BISListTooltipCharDB.displayClass.ROGUE, true)
   end,

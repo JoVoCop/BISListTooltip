@@ -19,7 +19,7 @@ end
 
 local function setUpSavedVariables()
   BISListTooltipDB = ensureTable(BISListTooltipDB)
-  fillDefaults(BISListTooltipDB, { schema = 1, noticesEnabled = true })
+  fillDefaults(BISListTooltipDB, { schema = 1, noticesEnabled = true, blankLineBefore = true, blankLineAfter = true })
   BISListTooltipDB.lists = ensureTable(BISListTooltipDB.lists)
   BISListTooltipDB.notified = ensureTable(BISListTooltipDB.notified)
 
