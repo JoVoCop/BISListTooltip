@@ -17,6 +17,7 @@ Built-in lists ship with each release, once the owner has synced them with `tool
 * Active list: which list the tooltip uses, per character, or Off to hide BIS lines on that character.
 * Class filter: which classes' lines are shown, per character. Defaults to every class.
 * Remove an imported list from the list overview.
+* Blank lines before and after the list in the tooltip (both on by default).
 * Guild update notices (on by default).
 
 ## Guild update notices

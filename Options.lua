@@ -7,7 +7,9 @@ local CATEGORY_NAME = "BIS List Tooltip"
 local UNAVAILABLE_MESSAGE = "BIS List Tooltip: options are unavailable on this client."
 local REMOVE_PROMPT = 'Remove "%s"?\n\nThis removes it for all characters on this account.'
 local NOTICES_LABEL = "Tell me when a guildmate has a newer version of one of my lists"
-local IMPORT_HINT = "Copy an import string from bislist.io and paste it here."
+local BLANK_BEFORE_LABEL = "Add a blank line before the list"
+local BLANK_AFTER_LABEL = "Add a blank line after the list"
+local IMPORT_HINT ="Copy an import string from bislist.io and paste it here."
 local NO_LISTS_TEXT = "No lists yet. Import one below."
 local OFF_LABEL = "Off (no BIS lines in tooltips)"
 
@@ -51,6 +53,14 @@ end
 
 function Options.SetNoticesEnabled(enabled)
   BISListTooltipDB.noticesEnabled = enabled == true
+end
+
+function Options.SetBlankLineBefore(enabled)
+  BISListTooltipDB.blankLineBefore = enabled == true
+end
+
+function Options.SetBlankLineAfter(enabled)
+  BISListTooltipDB.blankLineAfter = enabled == true
 end
 
 function Options.ConfirmRemove(listId)
@@ -273,6 +283,13 @@ local function buildClassSection()
   end
 end
 
+local function buildTooltipSection()
+  widgets.blankLineBefore = newCheckbox(BLANK_BEFORE_LABEL, Options.SetBlankLineBefore)
+  addBlock(widgets.blankLineBefore, 26)
+  widgets.blankLineAfter = newCheckbox(BLANK_AFTER_LABEL, Options.SetBlankLineAfter)
+  addBlock(widgets.blankLineAfter, 26)
+end
+
 local function buildNoticesSection()
   widgets.notices = newCheckbox(NOTICES_LABEL, Options.SetNoticesEnabled)
   addBlock(widgets.notices, 26)
@@ -308,6 +325,8 @@ local function refresh()
   local shown = BISListTooltipCharDB and BISListTooltipCharDB.displayClass or {}
   for token, check in pairs(classChecks) do check:SetChecked(shown[token] == true) end
   widgets.notices:SetChecked(BISListTooltipDB ~= nil and BISListTooltipDB.noticesEnabled == true)
+  widgets.blankLineBefore:SetChecked(BISListTooltipDB ~= nil and BISListTooltipDB.blankLineBefore ~= false)
+  widgets.blankLineAfter:SetChecked(BISListTooltipDB ~= nil and BISListTooltipDB.blankLineAfter ~= false)
 end
 
 Options.Refresh = refresh
@@ -344,6 +363,9 @@ local function buildPanel()
 
   newHeader("Show classes")
   buildClassSection()
+
+  newHeader("Tooltip")
+  buildTooltipSection()
 
   newHeader("Guild update notices")
   buildNoticesSection()

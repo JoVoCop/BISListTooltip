@@ -108,7 +108,7 @@ return {
     t.eq({ line.r, line.g, line.b }, { 1, 1, 1 })
   end,
 
-  ["Decorate adds blank line, header with list title, then lines"] = function(t)
+  ["Decorate adds blank line, header with list title, lines, then blank line"] = function(t)
     local ns = wow.load()
     withActiveList(ns, INDEX, "My List")
     local tooltip = fakeTooltip()
@@ -118,7 +118,26 @@ return {
       { "line", " " },
       { "line", "|cff0af5a2My List|r" },
       { "double", "|A:classicon-mage|a Fire", "Pre-raid - 1/2", color.r, color.g, color.b, color.r, color.g, color.b },
+      { "line", " " },
     })
+  end,
+
+  ["Decorate leaves out the blank lines that are turned off"] = function(t)
+    local ns = wow.load()
+    withActiveList(ns, INDEX, "My List")
+    local function kinds(db)
+      BISListTooltipDB = db
+      local tooltip = fakeTooltip()
+      ns.Tooltip.Decorate(tooltip, 200)
+      local texts = {}
+      for _, call in ipairs(tooltip.calls) do texts[#texts + 1] = call[1] == "line" and call[2] or "entry" end
+      return texts
+    end
+    local header = "|cff0af5a2My List|r"
+    t.eq(kinds({ blankLineBefore = false, blankLineAfter = true }), { header, "entry", " " })
+    t.eq(kinds({ blankLineBefore = true, blankLineAfter = false }), { " ", header, "entry" })
+    t.eq(kinds({ blankLineBefore = false, blankLineAfter = false }), { header, "entry" })
+    t.eq(kinds({}), { " ", header, "entry", " " })
   end,
 
   ["Decorate does nothing for an unknown item, no active list, nil id, string id, or secret id"] = function(t)
@@ -158,9 +177,9 @@ return {
     t.eq(stubs.tooltipCallbacks[1].dataType, Enum.TooltipDataType.Item)
     local tooltip = fakeTooltip()
     stubs.tooltipCallbacks[1].callback(tooltip, { id = 200 })
-    t.eq(#tooltip.calls, 3)
+    t.eq(#tooltip.calls, 4)
     stubs.tooltipCallbacks[1].callback(tooltip, nil)
-    t.eq(#tooltip.calls, 3)
+    t.eq(#tooltip.calls, 4)
   end,
 
   ["a hover looks up the active list once"] = function(t)
@@ -177,7 +196,7 @@ return {
     ns.Lists.GetActive = function() lookups = lookups + 1; return getActive() end
     local tooltip = fakeTooltip()
     ns.Tooltip.Decorate(tooltip, 200)
-    t.eq(#tooltip.calls, 3)
+    t.eq(#tooltip.calls, 4)
     t.eq(lookups, 1)
   end,
 }

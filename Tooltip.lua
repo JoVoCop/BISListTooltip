@@ -89,11 +89,13 @@ local function decorate(tooltip, itemId)
   local lines = Tooltip.BuildLines(itemId, index, ns.TokenRewards, displayClass)
   if #lines == 0 then return end
 
-  tooltip:AddLine(" ")
+  local db = BISListTooltipDB or {}
+  if db.blankLineBefore ~= false then tooltip:AddLine(" ") end
   tooltip:AddLine(HEADER_COLOR .. escapePipes(record.title) .. "|r")
   for _, line in ipairs(lines) do
     tooltip:AddDoubleLine(line.left, line.right, line.r, line.g, line.b, line.r, line.g, line.b)
   end
+  if db.blankLineAfter ~= false then tooltip:AddLine(" ") end
 end
 
 function Tooltip.Decorate(tooltip, itemId)
