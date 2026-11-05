@@ -28,13 +28,8 @@ local function setUpSavedVariables()
   BISListTooltipCharDB.displayClass = ensureTable(BISListTooltipCharDB.displayClass)
 
   if firstLoad then
-    local _, playerClass = UnitClass("player")
-    local playerIsKnown = false
     for _, token in ipairs(ns.Catalog.CLASS_TOKENS) do
-      if token == playerClass then playerIsKnown = true end
-    end
-    for _, token in ipairs(ns.Catalog.CLASS_TOKENS) do
-      BISListTooltipCharDB.displayClass[token] = not playerIsKnown or token == playerClass
+      BISListTooltipCharDB.displayClass[token] = true
     end
   end
 end

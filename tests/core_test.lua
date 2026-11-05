@@ -9,17 +9,10 @@ end
 local ALL_TOKENS = { "DRUID", "HUNTER", "MAGE", "PALADIN", "PRIEST", "ROGUE", "SHAMAN", "WARLOCK", "WARRIOR" }
 
 return {
-  ["first load sets only the player's class"] = function(t)
+  ["first load shows every class"] = function(t)
     loadAddon({})
-    for _, token in ipairs(ALL_TOKENS) do
-      t.eq(BISListTooltipCharDB.displayClass[token], token == "MAGE")
-    end
-    t.eq(BISListTooltipDB, { schema = 1, lists = {}, notified = {}, noticesEnabled = true })
-  end,
-
-  ["a player class outside the nine tokens shows every class"] = function(t)
-    loadAddon({ UnitClass = function() return "Death Knight", "DEATHKNIGHT" end })
     for _, token in ipairs(ALL_TOKENS) do t.eq(BISListTooltipCharDB.displayClass[token], true) end
+    t.eq(BISListTooltipDB, { schema = 1, lists = {}, notified = {}, noticesEnabled = true })
   end,
 
   ["existing settings survive a reload"] = function(t)
@@ -38,7 +31,7 @@ return {
     loadAddon({ BISListTooltipDB = "x", BISListTooltipCharDB = 5 })
     t.eq(BISListTooltipDB, { schema = 1, lists = {}, notified = {}, noticesEnabled = true })
     t.eq(BISListTooltipCharDB.displayClass.MAGE, true)
-    t.eq(BISListTooltipCharDB.displayClass.ROGUE, false)
+    t.eq(BISListTooltipCharDB.displayClass.ROGUE, true)
   end,
 
   ["corrupt nested saved variables are replaced"] = function(t)
@@ -48,7 +41,7 @@ return {
     })
     t.eq(BISListTooltipDB, { schema = 1, lists = {}, notified = {}, noticesEnabled = false })
     t.eq(BISListTooltipCharDB.displayClass.MAGE, true)
-    t.eq(BISListTooltipCharDB.displayClass.ROGUE, false)
+    t.eq(BISListTooltipCharDB.displayClass.ROGUE, true)
   end,
 
   ["ADDON_LOADED for another addon does nothing"] = function(t)
