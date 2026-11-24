@@ -1,5 +1,6 @@
 name: Release synced lists
 
+# Merging an "Update built-in lists" PR is the approval: it releases the version whose changelog the PR carries.
 on:
   pull_request:
     types: [closed]
@@ -17,50 +18,35 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: main
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0
 
-      - name: Work out the next patch version
+      # The newest untagged vX.Y.Z changelog names the release; it must come after the latest tag.
+      - name: Find the version to release
         id: version
-        env:
-          PR_BODY: ${{ github.event.pull_request.body }}
+        shell: bash
         run: |
+          set -euo pipefail
           latest=$(git tag -l 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
-          tagged=true
-          if [ -z "$latest" ]; then
-            # Before the first release the newest changelog stands in, so a dry run still shows what would happen.
-            tagged=false
-            latest=$(ls changelogs | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+\.md$' | sed 's/\.md$//' | sort -V | tail -1)
-          fi
-          IFS=. read -r major minor patch <<< "${latest#v}"
-          next="v$major.$minor.$((patch + 1))"
-          {
-            echo "## $next"
-            echo
-            echo "Updated the built-in lists:"
-            echo
-            printf '%s\n' "$PR_BODY" | grep '^\* '
-          } > "changelogs/$next.md"
-          if [ "${{ vars.AUTO_RELEASE }}" != "true" ] || [ "$tagged" != true ]; then
-            {
-              if [ "$tagged" != true ]; then echo "$latest isn't tagged yet, so nothing is released; the first release is tagged by hand."; echo; fi
-              echo "Dry run: would release $next after $latest with this changelog:"
-              echo
-              cat "changelogs/$next.md"
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
+          next=$(ls changelogs | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+\.md$' | sed 's/\.md$//' | sort -V | tail -1)
+          if git rev-parse -q --verify "refs/tags/$next" >/dev/null || [ "$(printf '%s\n%s\n' "$latest" "$next" | sort -V | tail -1)" != "$next" ]; then
+            echo "::error::No untagged changelog after $latest in this merge, so nothing was released. Add changelogs/vX.Y.Z.md and tag it by hand."
+            exit 1
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "changelogs/$next.md"
-          git commit -q -m "Changelog for $next"
           git tag -a "$next" -m "$next"
-          git push -q origin main "$next"
+          git push -q origin "$next"
           echo "tag=$next" >> "$GITHUB_OUTPUT"
+          {
+            echo "Releasing $next:"
+            echo
+            cat "changelogs/$next.md"
+          } >> "$GITHUB_STEP_SUMMARY"
 
+  # A tag pushed by a workflow doesn't start other workflows, so the release is called directly.
   release:
     needs: prepare
-    if: needs.prepare.outputs.tag != ''
     uses: ./.github/workflows/release.yaml
     with:
       tag: ${{ needs.prepare.outputs.tag }}

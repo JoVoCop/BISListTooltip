@@ -44,7 +44,9 @@ Only the Python 3 standard library is used by the tools.
 
 The "Sync built-in lists" workflow runs every day and can be started from the Actions tab. It runs `tools/sync-builtin.py` against bislist.io, tests the result, and opens (or updates) an "Update built-in lists" pull request listing what changed; if the lists match main again, it closes that pull request.
 
-Merging that pull request starts "Release synced lists". With the repository variable `AUTO_RELEASE` set to `true`, it writes the changelog, tags the next patch version and runs the release (GitHub and CurseForge). Otherwise, and always before the first tagged release, it only reports in the run summary what it would release.
+The pull request also adds `changelogs/vX.Y.Z.md` for the next patch version. Review it in the pull request and edit it there if you want; later syncs keep an edited changelog and only rewrite their own.
+
+Merging that pull request is the approval: "Release synced lists" tags the version of the newest untagged changelog and runs the release (GitHub and CurseForge). If the merge has no untagged changelog newer than the latest tag, it fails and releases nothing.
 
 ### CurseForge publishing
 
