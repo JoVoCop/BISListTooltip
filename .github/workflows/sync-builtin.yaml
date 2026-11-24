@@ -21,7 +21,10 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
+      # Full history and tags: the changelog is named after the next version, and an edited one is kept from the open PR.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -42,9 +45,12 @@ jobs:
           python3 -m unittest discover -s tools -p 'test_*.py'
 
       - name: Open, update or close the pull request
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          BOT_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
         run: |
+          set -euo pipefail
           existing=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
           if git diff --quiet -- Data; then
             echo "Built-in lists match bislist.io." >> "$GITHUB_STEP_SUMMARY"
@@ -53,10 +59,35 @@ jobs:
             fi
             exit 0
           fi
+
+          # The PR carries the changelog of the release that merging it makes, so it can be reviewed and edited first.
+          latest=$(git tag -l 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          IFS=. read -r major minor patch <<< "${latest#v}"
+          next="v$major.$minor.$((patch + 1))"
+          changelog="changelogs/$next.md"
+          {
+            echo "## $next"
+            echo
+            echo "Updated the built-in lists:"
+            echo
+            sed 's/^/* /' summary.txt
+          } > generated.md
+
+          # A changelog someone edited in the open PR is kept; the bot only rewrites its own.
+          kept=false
+          if git fetch -q origin "$BRANCH" 2>/dev/null && git cat-file -e "FETCH_HEAD:$changelog" 2>/dev/null; then
+            last_author=$(git log -1 --format=%ae FETCH_HEAD -- "$changelog")
+            if [ "$last_author" != "$BOT_EMAIL" ]; then
+              git show "FETCH_HEAD:$changelog" > "$changelog"
+              kept=true
+            fi
+          fi
+          if [ "$kept" = false ]; then cp generated.md "$changelog"; fi
+
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "$BOT_EMAIL"
           git checkout -B "$BRANCH"
-          git add Data
+          git add Data "$changelog"
           git commit -q -m "Update built-in lists from bislist.io" -m "$(cat summary.txt)"
           git push -q --force origin "$BRANCH"
           {
@@ -64,7 +95,13 @@ jobs:
             echo
             sed 's/^/* /' summary.txt
             echo
-            echo "Merging releases the next patch version when automatic releases are on (repository variable \`AUTO_RELEASE\` set to \`true\`). Until then, merging only updates main."
+            echo "**Merging this releases $next** to GitHub and CurseForge, with \`$changelog\` from this PR as its changelog. Review it under Files changed, and edit it there before merging if you want to."
+            if [ "$kept" = true ]; then
+              echo
+              echo "The changelog was edited in this PR, so the daily sync kept your version. Today's generated text, in case the lists changed since:"
+              echo
+              sed 's/^/> /' generated.md
+            fi
           } > body.md
           if [ -n "$existing" ]; then
             gh pr edit "$existing" --body-file body.md
