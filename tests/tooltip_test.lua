@@ -20,6 +20,33 @@ local function withActiveList(ns, index, title)
   ns.Lists.GetActiveIndex = function() return title and index or nil end
 end
 
+local function suffixed(bonusId, ...)
+  local result = entry(...)
+  result.bonusId = bonusId
+  return result
+end
+
+-- A full hyperlink as the client builds it: the colour code in front has a colon of its own.
+local function hyperlink(itemString)
+  return "|cnIQ2:|H" .. itemString .. "|h[Master's Hat of Shadow Wrath]|h|r"
+end
+
+local SHADOW_WRATH_LINK = hyperlink("item:10250::::::::38:1490:::1:12761:::::")
+
+local SUFFIX_INDEX = {
+  [10250] = {
+    suffixed(12761, "MAGE", "Fire", "Shadow Wrath", 1, 3),
+    suffixed(12762, "MAGE", "Fire", "Other suffix", 2, 3),
+    entry("WARLOCK", "Affliction", "Any", 1, 1),
+  },
+}
+
+local function rights(lines)
+  local texts = {}
+  for _, line in ipairs(lines) do texts[#texts + 1] = line.right end
+  return texts
+end
+
 local INDEX = {
   [100] = { entry("MAGE", "Arcane", "Best", 1, 3), entry("WARRIOR", "Fury", "Alt", 2, 4) },
   [200] = { entry("MAGE", "Fire", "Pre-raid", 1, 2, "head", 2) },
@@ -180,6 +207,75 @@ return {
     t.eq(#tooltip.calls, 4)
     stubs.tooltipCallbacks[1].callback(tooltip, nil)
     t.eq(#tooltip.calls, 4)
+  end,
+
+  ["a suffixed entry shows only when the item carries its bonus"] = function(t)
+    local ns = wow.load()
+    t.eq(rights(ns.Tooltip.BuildLines(10250, SUFFIX_INDEX, {}, ALL_SHOWN, { [12761] = true })), { "Shadow Wrath - 1/3", "Any - 1/1" })
+    t.eq(rights(ns.Tooltip.BuildLines(10250, SUFFIX_INDEX, {}, ALL_SHOWN, { [99] = true })), { "Any - 1/1" })
+    t.eq(rights(ns.Tooltip.BuildLines(10250, SUFFIX_INDEX, {}, ALL_SHOWN, {})), { "Any - 1/1" })
+  end,
+
+  ["without the item's bonus IDs only entries with no bonus show"] = function(t)
+    local ns = wow.load()
+    t.eq(rights(ns.Tooltip.BuildLines(10250, SUFFIX_INDEX, {}, ALL_SHOWN, nil)), { "Any - 1/1" })
+  end,
+
+  ["token rewards are not filtered by the token's bonus IDs"] = function(t)
+    local ns = wow.load()
+    local lines = ns.Tooltip.BuildLines(900, SUFFIX_INDEX, { [900] = { 10250 } }, ALL_SHOWN, nil)
+    t.eq(rights(lines), { "Shadow Wrath - 1/3", "Other suffix - 2/3", "Any - 1/1" })
+  end,
+
+  ["LinkBonusIds reads the bonus IDs from an item string or a full hyperlink"] = function(t)
+    local ns = wow.load()
+    t.eq(ns.Tooltip.LinkBonusIds(SHADOW_WRATH_LINK, 10250), { [12761] = true })
+    t.eq(ns.Tooltip.LinkBonusIds("item:10250::::::::60::::2:12761:1490", 10250), { [12761] = true, [1490] = true })
+    t.eq(ns.Tooltip.LinkBonusIds("item:10250::::::::60::::::", 10250), {})
+    t.eq(ns.Tooltip.LinkBonusIds("item:10250", 10250), {})
+    t.eq(ns.Tooltip.LinkBonusIds(SHADOW_WRATH_LINK, 10251), nil)
+    t.eq(ns.Tooltip.LinkBonusIds("|cffffffff|Hspell:5|h[x]|h|r", 10250), nil)
+    t.eq(ns.Tooltip.LinkBonusIds(nil, 10250), nil)
+  end,
+
+  ["LinkBonusIds ignores a secret link"] = function(t)
+    local ns = wow.load({ issecretvalue = function(value) return type(value) == "string" end })
+    t.eq(ns.Tooltip.LinkBonusIds(SHADOW_WRATH_LINK, 10250), nil)
+  end,
+
+  ["Decorate matches suffixes from the tooltip's item link"] = function(t)
+    local ns = wow.load()
+    withActiveList(ns, SUFFIX_INDEX, "My List")
+    local function shown(link)
+      local tooltip = fakeTooltip()
+      function tooltip:GetItem() return "Master's Hat of Shadow Wrath", link, 10250 end
+      ns.Tooltip.Decorate(tooltip, 10250, { id = 10250 })
+      local texts = {}
+      for _, call in ipairs(tooltip.calls) do if call[1] == "double" then texts[#texts + 1] = call[3] end end
+      return texts
+    end
+    t.eq(shown(SHADOW_WRATH_LINK), { "Shadow Wrath - 1/3", "Any - 1/1" })
+    t.eq(shown(hyperlink("item:10250::::::::38:1490:::1:12762")), { "Other suffix - 2/3", "Any - 1/1" })
+    t.eq(shown(hyperlink("item:10250::::::::38:1490::::")), { "Any - 1/1" })
+  end,
+
+  ["Decorate falls back to data.hyperlink, then to entries with no bonus"] = function(t)
+    local ns, stubs = wow.load()
+    withActiveList(ns, SUFFIX_INDEX, "My List")
+    ns.Tooltip.Install()
+    local function shown(data, getItem)
+      local tooltip = fakeTooltip()
+      tooltip.GetItem = getItem
+      stubs.tooltipCallbacks[1].callback(tooltip, data)
+      local texts = {}
+      for _, call in ipairs(tooltip.calls) do if call[1] == "double" then texts[#texts + 1] = call[3] end end
+      return texts
+    end
+    t.eq(shown({ id = 10250, hyperlink = SHADOW_WRATH_LINK }), { "Shadow Wrath - 1/3", "Any - 1/1" })
+    t.eq(shown({ id = 10250, hyperlink = SHADOW_WRATH_LINK }, function() return nil end), { "Shadow Wrath - 1/3", "Any - 1/1" })
+    t.eq(shown({ id = 10250, hyperlink = SHADOW_WRATH_LINK }, function() error("no item") end), { "Shadow Wrath - 1/3", "Any - 1/1" })
+    t.eq(shown({ id = 10250 }), { "Any - 1/1" })
+    t.eq(stubs.printed, {})
   end,
 
   ["a hover looks up the active list once"] = function(t)

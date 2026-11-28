@@ -57,7 +57,8 @@ return {
     t.eq(code(""), "prefix")
     t.eq(code("hello"), "prefix")
     t.eq(code("BLT:abc"), "prefix")
-    t.eq(code("BLT2:abc"), "version")
+    t.eq(code("BLT3:abc"), "version")
+    t.eq(code("BLT02:abc"), "version")
     t.eq(code("BLT01:abc"), "version")
     t.eq(code(nil), "prefix")
   end,
@@ -119,6 +120,49 @@ return {
     end
   end,
 
+  ["BLT2 entries carry a bonus ID, or none when the field is empty"] = function(t)
+    local ns = wow.load()
+    local body = HEADER .. "\n" .. ENTRY .. "\t12761\n" .. ENTRY .. "\t"
+    local payload, skipped = ns.ImportString.Decode(encode(body, "BLT2"))
+    t.eq(skipped, 0)
+    t.eq(payload.entries, {
+      { classToken = "MAGE", build = "Fire", itemId = 19019, slotGroup = "head", rank = 1, label = "Best", bonusId = 12761 },
+      { classToken = "MAGE", build = "Fire", itemId = 19019, slotGroup = "head", rank = 1, label = "Best" },
+    })
+  end,
+
+  ["BLT2 skips unknown classes like BLT1"] = function(t)
+    local ns = wow.load()
+    local payload, skipped = ns.ImportString.Decode(encode(HEADER .. "\nE\tEVOKER\tDev\t1\thead\t1\tx\t5", "BLT2"))
+    t.eq(payload.entries, {})
+    t.eq(skipped, 1)
+  end,
+
+  ["BLT2 format errors"] = function(t)
+    local function body(...) return table.concat({ ... }, "\n") end
+    local cases = {
+      sevenFields = body(HEADER, ENTRY),
+      nineFields = body(HEADER, ENTRY .. "\t5\t6"),
+      bonusNotDigits = body(HEADER, ENTRY .. "\tx"),
+      bonusNegative = body(HEADER, ENTRY .. "\t-5"),
+      bonusFraction = body(HEADER, ENTRY .. "\t1.5"),
+      bonusZero = body(HEADER, ENTRY .. "\t0"),
+      bonusSpace = body(HEADER, ENTRY .. "\t 5"),
+      badBonusSkippedClass = body(HEADER, "E\tEVOKER\tDev\t1\thead\t1\tx\tx"),
+    }
+    for name, text in pairs(cases) do
+      local ns = wow.load()
+      local payload, code = ns.ImportString.Decode(encode(text, "BLT2"))
+      t.eq(payload, nil)
+      if code ~= "format" then error(name .. ": expected format, got " .. tostring(code), 0) end
+    end
+  end,
+
+  ["BLT1 still rejects a bonus ID field"] = function(t)
+    t.eq(decodeCode(encode(HEADER .. "\n" .. ENTRY .. "\t12761")), "format")
+    t.eq(decodeCode(encode(HEADER .. "\n" .. ENTRY .. "\t")), "format")
+  end,
+
   ["accepts the UTF-8 boundary code points"] = function(t)
     local ns = wow.load()
     local title = "\237\159\191\244\143\191\191"
@@ -178,7 +222,7 @@ return {
       local bytes = {}
       for i = 1, math.random(0, 60) do bytes[i] = string.char(math.random(0, 255)) end
       local random = table.concat(bytes)
-      for _, text in ipairs({ "BLT1:" .. random, encodeRaw(random) }) do
+      for _, text in ipairs({ "BLT1:" .. random, encodeRaw(random), encodeRaw(random, "BLT2") }) do
         local ok, payload, code = pcall(ns.ImportString.Decode, text)
         t.ok(ok, "raised: " .. tostring(payload))
         t.eq(payload, nil)

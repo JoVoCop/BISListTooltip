@@ -108,6 +108,9 @@ local function toInteger(text, minimum)
   return value
 end
 
+-- BLT2 adds a bonus ID field to E lines; BLT1 strings stay exactly as before.
+local ENTRY_FIELDS = { ["1"] = 7, ["2"] = 8 }
+
 local function parseHeader(line)
   local fields = split(line, "\t")
   if #fields ~= 7 or fields[1] ~= "H" or fields[5] ~= "forever" then return nil end
@@ -126,9 +129,10 @@ function ImportString.Decode(text)
 
   local versionDigits = text:match("^BLT(%d+):")
   if not versionDigits then return nil, "prefix" end
-  if versionDigits ~= "1" then return nil, "version" end
+  local entryFields = ENTRY_FIELDS[versionDigits]
+  if not entryFields then return nil, "version" end
 
-  local compressed = decodeBase64(text:sub(#"BLT1:" + 1))
+  local compressed = decodeBase64(text:sub(#"BLT" + #versionDigits + #":" + 1))
   if not compressed then return nil, "base64" end
 
   local body, unprocessedBytes = LibStub("LibDeflate"):DecompressDeflate(compressed)
@@ -144,7 +148,7 @@ function ImportString.Decode(text)
   local entries, skipped = payload.entries, 0
   for index = 2, #lines do
     local fields = split(lines[index], "\t")
-    if #fields ~= 7 or fields[1] ~= "E" then return nil, "format" end
+    if #fields ~= entryFields or fields[1] ~= "E" then return nil, "format" end
     local build = fields[3]
     local buildLength = codePointCount(build)
     if buildLength < 1 or buildLength > MAX_BUILD_CHARACTERS or build:find("\r", 1, true) then
@@ -153,10 +157,16 @@ function ImportString.Decode(text)
     local itemId = toInteger(fields[4], 1)
     local rank = toInteger(fields[6], 1)
     if not itemId or not rank then return nil, "format" end
+    -- An empty bonus means any version of the item, the same as a BLT1 entry.
+    local bonusId
+    if fields[8] and fields[8] ~= "" then
+      bonusId = toInteger(fields[8], 1)
+      if not bonusId then return nil, "format" end
+    end
     if classOrder[fields[2]] and slotGroups[fields[5]] then
       entries[#entries + 1] = {
         classToken = fields[2], build = build, itemId = itemId, slotGroup = fields[5],
-        rank = rank, label = fields[7],
+        rank = rank, label = fields[7], bonusId = bonusId,
       }
     else
       skipped = skipped + 1

@@ -227,6 +227,7 @@ function Lists.BuildIndex(payload)
       rank = entry.rank,
       total = totals[buildKey .. "\0" .. entry.slotGroup],
       slotGroup = entry.slotGroup,
+      bonusId = entry.bonusId,
       buildPosition = buildPosition[buildKey],
     }
   end

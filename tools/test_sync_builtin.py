@@ -29,11 +29,12 @@ def make_import_string(
     title: str = "Title",
     author: str = "Author",
     entry_line: str = "E\tMAGE\tFire\t1\thead\t1\tBest",
+    prefix: str = "BLT1",
 ) -> str:
     body = f"H\t{list_id}\t{version}\t1761782400\t{game}\t{title}\t{author}\n{entry_line}"
     compressor = zlib.compressobj(wbits=-15)
     raw = compressor.compress(body.encode("utf-8")) + compressor.flush()
-    return "BLT1:" + base64.b64encode(raw).decode("ascii")
+    return prefix + ":" + base64.b64encode(raw).decode("ascii")
 
 
 def make_list(list_id: str = "abc", version: int = 20261104001, title: str = "Title") -> dict[str, Any]:
@@ -69,6 +70,31 @@ class DecodeHeaderTest(unittest.TestCase):
             sync_builtin.decode_import_string(text[: len(text) // 2])
         with self.assertRaises(sync_builtin.SyncError):
             sync_builtin.decode_import_string("BLT1:!!!!")
+
+    def test_decode_accepts_blt2_with_a_bonus_id_or_an_empty_one(self) -> None:
+        for line in ("E\tMAGE\tFire\t1\thead\t1\tBest\t12761", "E\tMAGE\tFire\t1\thead\t1\tBest\t"):
+            with self.subTest(line=line):
+                header = sync_builtin.decode_import_string(make_import_string("xyz", entry_line=line, prefix="BLT2"))
+                self.assertEqual(header["listId"], "xyz")
+
+    def test_decode_rejects_bad_blt2_lines_and_unknown_versions(self) -> None:
+        bad_lines = [
+            "E\tMAGE\tFire\t1\thead\t1\tBest",
+            "E\tMAGE\tFire\t1\thead\t1\tBest\t5\t6",
+            "E\tMAGE\tFire\t1\thead\t1\tBest\tx",
+            "E\tMAGE\tFire\t1\thead\t1\tBest\t-5",
+            "E\tMAGE\tFire\t1\thead\t1\tBest\t0",
+        ]
+        for line in bad_lines:
+            with self.subTest(line=line):
+                with self.assertRaises(sync_builtin.SyncError):
+                    sync_builtin.decode_import_string(make_import_string(entry_line=line, prefix="BLT2"))
+        with self.assertRaisesRegex(sync_builtin.SyncError, "8 fields"):
+            sync_builtin.decode_import_string(make_import_string(entry_line=bad_lines[0], prefix="BLT2"))
+        with self.assertRaisesRegex(sync_builtin.SyncError, "7 fields"):
+            sync_builtin.decode_import_string(make_import_string(entry_line=bad_lines[0] + "\t12761"))
+        with self.assertRaisesRegex(sync_builtin.SyncError, "prefix"):
+            sync_builtin.decode_import_string(make_import_string(prefix="BLT3"))
 
 
 class RenderTest(unittest.TestCase):

@@ -217,6 +217,32 @@ return {
     t.eq({ item[1].slotGroup, item[2].slotGroup }, { "weapon", "off-hand" })
   end,
 
+  ["one item with two suffixes in a slot gives two entries that keep their bonus IDs and count in the total"] = function(t)
+    local ns = setup()
+    local body = table.concat({
+      table.concat({ "H", "sfx", "1", "1761782400", "forever", "Suffixes", "Author" }, "\t"),
+      "E\tMAGE\tFire\t10250\thead\t1\tBest\t12761",
+      "E\tMAGE\tFire\t10250\thead\t2\tAlt\t12762",
+      "E\tMAGE\tFire\t10251\thead\t3\tAny\t",
+    }, "\n")
+    local index = ns.Lists.BuildIndex(ns.ImportString.Decode(helpers.encode(body, "BLT2")))
+    t.eq(#index[10250], 2)
+    t.eq({ index[10250][1].bonusId, index[10250][1].rank, index[10250][1].total }, { 12761, 1, 3 })
+    t.eq({ index[10250][2].bonusId, index[10250][2].rank, index[10250][2].total }, { 12762, 2, 3 })
+    t.eq(index[10251][1].bonusId, nil)
+    t.eq(index[10251][1].total, 3)
+  end,
+
+  ["a BLT2 list imports and becomes the active index"] = function(t)
+    local ns = setup()
+    local body = table.concat({
+      table.concat({ "H", "sfx", "1", "1761782400", "forever", "Suffixes", "Author" }, "\t"),
+      "E\tMAGE\tFire\t10250\thead\t1\tBest\t12761",
+    }, "\n")
+    t.ok(ns.Lists.Import(helpers.encode(body, "BLT2")))
+    t.eq(ns.Lists.GetActiveIndex()[10250][1].bonusId, 12761)
+  end,
+
   ["GetActiveIndex builds from the active list and refreshes after a newer import"] = function(t)
     local ns = setup()
     ns.Lists.Import(fixtureText("basic"))

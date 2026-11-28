@@ -18,12 +18,13 @@ local function base64Encode(data)
   return table.concat(out)
 end
 
-local function encodeRaw(bytes)
-  return "BLT1:" .. base64Encode(bytes)
+-- The prefix defaults to BLT1; BLT2 strings pass it explicitly.
+local function encodeRaw(bytes, prefix)
+  return (prefix or "BLT1") .. ":" .. base64Encode(bytes)
 end
 
-local function encode(body)
-  return encodeRaw(LibStub("LibDeflate"):CompressDeflate(body))
+local function encode(body, prefix)
+  return encodeRaw(LibStub("LibDeflate"):CompressDeflate(body), prefix)
 end
 
 return { base64Encode = base64Encode, encodeRaw = encodeRaw, encode = encode }
